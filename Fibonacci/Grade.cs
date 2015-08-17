@@ -15,7 +15,6 @@ namespace Fibonacci
         private string gradeName;
         private double gradeValue;
         public event PropertyChangedEventHandler PropertyChanged;
-        private Func<double, double> intervalCalc;
 
         public string GradeName
         {
@@ -41,13 +40,12 @@ namespace Fibonacci
             {
                 if (value < 0)
                     return;
-                gradeValue = intervalCalc(value);
+                gradeValue = Convert.ToInt32(value * 10) / 10.0;
                 OnPropertyChanged(nameof(GradeValue));
             }
         }
-        public GradeTuple(string gradeName, double gradeValue, string gradeSystem)
+        public GradeTuple(string gradeName, double gradeValue)
         {
-            intervalCalc = GradeSystem.GradeIntervalCalcDict[gradeSystem];
             GradeName = gradeName;
             GradeValue = gradeValue;
         }
@@ -63,60 +61,14 @@ namespace Fibonacci
         #endregion
 
         #region Static Member
-        public static Dictionary<string, Func<double, double>> GradeIntervalCalcDict { get; }
 
         static GradeSystem()
         {
-            GradeIntervalCalcDict = new Dictionary<string, Func<double, double>>();
-            Func<double, double> lambda = (value) =>
-            {
-                double result = 0;
-                var s = value - Math.Floor(value);
-                if (s < 0.5)
-                    result = Math.Floor(value);
-                else
-                    result = Math.Floor(value) + 0.5;
-                return result;
-            };
-            GradeIntervalCalcDict.Add("4.5 만점", lambda);
-            lambda = (value) =>
-            {
-                double result = 0;
-                var flat = Math.Floor(value);
-                var dif = value - flat;
-
-                if (dif >= 0.8)
-                    result = flat + 1;
-                else if (dif >= 0.5)
-                    result = flat + 0.5;
-                else if (dif >= 0.2)
-                    result = flat + 0.3;
-                else
-                    result = flat;
-                return result;
-            };
-            GradeIntervalCalcDict.Add("4.5 만점(-)", lambda);
-            lambda = (value) =>
-            {
-                double result = 0;
-                var flat = Math.Floor(value);
-                var dif = value - flat;
-
-                if (dif >= 0.7)
-                    result = flat + 0.7;
-                else if (dif >= 0.2)
-                    result = flat + 0.3;
-                else
-                    result = flat;
-                return result;
-            };
-            GradeIntervalCalcDict.Add("4.3 만점", lambda);
         }
         #endregion
 
         #region Properties
-        public string Name { get; }
-        public double Maximum { get; }
+        public double Maximum { get; set; }
         public Dictionary<string, double>.KeyCollection Keys { get { return gradeDict.Keys; } }
         public Dictionary<string, double>.ValueCollection Values { get { return gradeDict.Values; } }
         public double this[string key]
@@ -133,30 +85,46 @@ namespace Fibonacci
         #region Methods
         public void Add(string gradeString, double grade)
         {
-            var item = new GradeTuple(gradeString.ToUpper(), grade, Name);
+            if (gradeDict.ContainsKey(gradeString.ToUpper()))
+                return;
+            var item = new GradeTuple(gradeString.ToUpper(), grade);
             gradeDict.Add(item.GradeName, item.GradeValue);
-            Items.Add(item);
+            Add(item);
+        }
+
+        public new void Add(GradeTuple item)
+        {
+            int i = 0;
+            foreach(var t in Items)
+            {
+                if(string.Compare(t.GradeName, item.GradeName) == 1)
+                {
+                    break;
+                }
+                i++;
+            }
+            base.Insert(i, item);
         }
 
         public void Remove(string gradeString)
         {
-            gradeDict.Remove(gradeString);
+            gradeDict.Remove(gradeString.ToUpper());
+            base.Remove(Items.First((t) => t.GradeName == gradeString.ToUpper()));
         }
         #endregion
 
         #region Constructor
-        public GradeSystem(string name, double max)
+        public GradeSystem()
         {
             gradeDict = new Dictionary<string, double>();
-            Name = name;
-            Maximum = max;
+            Maximum = 4.5;
         }
         #endregion
 
         #region Overriding
         public override string ToString()
         {
-            return Name;
+            return base.ToString();
         }
 
         public void Dispose()
@@ -170,77 +138,77 @@ namespace Fibonacci
         #endregion
     }
 
-    public class GradeSystemCollection : ObservableCollection<GradeSystem>, INotifyPropertyChanged
-    {
-        private GradeSystem selectedItem;
-        public GradeSystem SelectedItem
-        {
-            get
-            {
-                return selectedItem;
-            }
-            set
-            {
-                selectedItem = value;
-                OnPropertyChanged(
-                    new PropertyChangedEventArgs(nameof(SelectedItem)));
-            }
+    //public class GradeSystemCollection : ObservableCollection<GradeSystem>, INotifyPropertyChanged
+    //{
+    //    private GradeSystem selectedItem;
+    //    public GradeSystem SelectedItem
+    //    {
+    //        get
+    //        {
+    //            return selectedItem;
+    //        }
+    //        set
+    //        {
+    //            selectedItem = value;
+    //            OnPropertyChanged(
+    //                new PropertyChangedEventArgs(nameof(SelectedItem)));
+    //        }
 
-        }
+    //    }
 
-        public GradeSystemCollection()
-            : base()
-        {
-            // 4.5
-            GradeSystem g = new GradeSystem("4.5 만점", 4.5);
-            g.Add("A+", 4.5);
-            g.Add("A", 4);
-            g.Add("B+", 3.5);
-            g.Add("B", 3);
-            g.Add("C+", 2.5);
-            g.Add("C", 2);
-            g.Add("D+", 1.5);
-            g.Add("D", 1.0);
-            g.Add("F", 0);
-            Items.Add(g);
+    //    public GradeSystemCollection()
+    //        : base()
+    //    {
+    //        // 4.5
+    //        GradeSystem g = new GradeSystem("4.5 만점", 4.5);
+    //        g.Add("A+", 4.5);
+    //        g.Add("A", 4);
+    //        g.Add("B+", 3.5);
+    //        g.Add("B", 3);
+    //        g.Add("C+", 2.5);
+    //        g.Add("C", 2);
+    //        g.Add("D+", 1.5);
+    //        g.Add("D", 1.0);
+    //        g.Add("F", 0);
+    //        Items.Add(g);
 
-            SelectedItem = g;
-            // 4.5 (-)
-            g = new GradeSystem("4.5 만점(-)", 4.5);
-            g.Add("A+", 4.5);
-            g.Add("A", 4.3);
-            g.Add("A-", 4);
-            g.Add("B+", 3.5);
-            g.Add("B", 3.3);
-            g.Add("B-", 3);
-            g.Add("C+", 2.5);
-            g.Add("C", 2.3);
-            g.Add("C-", 2);
-            g.Add("D+", 1.5);
-            g.Add("D", 1.3);
-            g.Add("D-", 1.0);
-            g.Add("F", 0);
-            Items.Add(g);
-            // 4.3
-            g = new GradeSystem("4.3 만점", 4.3);
-            g.Add("A+", 4.5);
-            g.Add("A", 4);
-            g.Add("A-", 3.7);
-            g.Add("B+", 3.3);
-            g.Add("B", 3);
-            g.Add("B-", 2.7);
-            g.Add("C+", 2.3);
-            g.Add("C", 2);
-            g.Add("C-", 1.7);
-            g.Add("D+", 1.3);
-            g.Add("D", 1);
-            g.Add("D-", 0.7);
-            g.Add("F", 0);
-            Items.Add(g);
-        }
+    //        SelectedItem = g;
+    //        // 4.5 (-)
+    //        g = new GradeSystem("4.5 만점(-)", 4.5);
+    //        g.Add("A+", 4.5);
+    //        g.Add("A", 4.3);
+    //        g.Add("A-", 4);
+    //        g.Add("B+", 3.5);
+    //        g.Add("B", 3.3);
+    //        g.Add("B-", 3);
+    //        g.Add("C+", 2.5);
+    //        g.Add("C", 2.3);
+    //        g.Add("C-", 2);
+    //        g.Add("D+", 1.5);
+    //        g.Add("D", 1.3);
+    //        g.Add("D-", 1.0);
+    //        g.Add("F", 0);
+    //        Items.Add(g);
+    //        // 4.3
+    //        g = new GradeSystem("4.3 만점", 4.3);
+    //        g.Add("A+", 4.5);
+    //        g.Add("A", 4);
+    //        g.Add("A-", 3.7);
+    //        g.Add("B+", 3.3);
+    //        g.Add("B", 3);
+    //        g.Add("B-", 2.7);
+    //        g.Add("C+", 2.3);
+    //        g.Add("C", 2);
+    //        g.Add("C-", 1.7);
+    //        g.Add("D+", 1.3);
+    //        g.Add("D", 1);
+    //        g.Add("D-", 0.7);
+    //        g.Add("F", 0);
+    //        Items.Add(g);
+    //    }
 
-        public new void Add(GradeSystem g) => Console.Beep();
-    }
+    //    public new void Add(GradeSystem g) => Console.Beep();
+    //}
 
     public class Lecture : INotifyPropertyChanged
     {
