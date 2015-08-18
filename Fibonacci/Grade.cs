@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Xml;
+using System.Runtime.CompilerServices;
 
 namespace Fibonacci
 {
@@ -52,32 +53,29 @@ namespace Fibonacci
 
         protected void OnPropertyChanged(string name)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+        public override string ToString()
+        {
+            return GradeName;
+        }
     }
 
-    public class GradeSystem : ObservableCollection<GradeTuple>, INotifyPropertyChanged, IDisposable
+    public class GradeSystem : ObservableCollection<GradeTuple>, INotifyPropertyChanged
     {
-        #region Member Field
-        private Dictionary<string, double> gradeDict;
-        #endregion
-
-        #region Static Member
-
-        static GradeSystem()
-        {
-        }
-        #endregion
-
         #region Properties
         public double Maximum { get; set; }
-        public Dictionary<string, double>.KeyCollection Keys { get { return gradeDict.Keys; } }
-        public Dictionary<string, double>.ValueCollection Values { get { return gradeDict.Values; } }
-        public double this[string key]
+
+        [IndexerName("Item")]
+        public GradeTuple this[string index]
         {
             get
             {
-                if (!Keys.Contains(key))
-                    return 0;
-                return gradeDict[key];
+                foreach(var v in Items)
+                {
+                    if (v.GradeName == index)
+                        return v;
+                }
+                return null;
             }
         }
         #endregion
@@ -85,10 +83,8 @@ namespace Fibonacci
         #region Methods
         public void Add(string gradeString, double grade)
         {
-            if (gradeDict.ContainsKey(gradeString.ToUpper()))
-                return;
             var item = new GradeTuple(gradeString.ToUpper(), grade);
-            gradeDict.Add(item.GradeName, item.GradeValue);
+        
             Add(item);
         }
 
@@ -97,8 +93,17 @@ namespace Fibonacci
             int i = 0;
             char first = item.GradeName.First();
             char last = item.GradeName.Last();
+
+
             if (first == last)
+            {
+                if(first == 'F')
+                {
+                    base.Add(item);
+                }
                 return;
+            }
+
             Func<char, int> myComparer = (ch) =>
             {
                 switch (ch)
@@ -121,31 +126,42 @@ namespace Fibonacci
                 if(itemFirst == first)
                 {
                     if (myComparer(last) <= myComparer(itemLast))
+                    {
                         break;
+                    }
                 }
                 i++;
             }
             
-            base.Insert(i, item);
+            Insert(i, item);
+            OnPropertyChanged("Item[]");
         }
 
         public void Remove(string gradeString)
         {
-            gradeDict.Remove(gradeString.ToUpper());
-            base.Remove(Items.First((t) => t.GradeName == gradeString.ToUpper()));
+            Remove(Items.First((t) => t.GradeName == gradeString.ToUpper()));
+            OnPropertyChanged("Item[]");
         }
         #endregion
 
         #region Constructor
-        public GradeSystem()
-            : this(4.5)
-        {
-        }
-
         public GradeSystem(double maximum)
         {
             Maximum = maximum;
-            gradeDict = new Dictionary<string, double>();
+
+            if(Maximum == 4.5)
+            {
+                for(int i = 0; i < 7; i++)
+                {
+                    char c = i % 2 == 0 ? '+' : '0';
+                    Add($"{Convert.ToChar('A' + i / 2)}{c}", 4.5 - i * 0.5);
+                }
+                Add("F", 0);
+            }
+            else
+            {
+
+            }
         }
         #endregion
 
@@ -154,13 +170,11 @@ namespace Fibonacci
         {
             return base.ToString();
         }
-
-        public void Dispose()
-            => gradeDict.Clear();
+        
         #endregion
 
         #region Inherited
-        protected event PropertyChangedEventHandler PropertyChanged;
+        protected override event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string propertyName)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         #endregion
@@ -225,6 +239,7 @@ namespace Fibonacci
             {
                 credit = value;
                 OnPropertyChanged(nameof(Credit));
+                OnPropertyChanged(nameof(TestString));
             }
         }
         public string GradeString
@@ -236,19 +251,36 @@ namespace Fibonacci
             set
             {
                 gradeString = value;
+
                 OnPropertyChanged(nameof(GradeString));
-                OnPropertyChanged(nameof(Grade));
+                OnPropertyChanged(nameof(GradeTuple));
+                OnPropertyChanged(nameof(TestString));
             }
         }
         public double Grade
         {
             get
             {
-                var v = GradeSystem?[GradeString];
-                if (v.HasValue)
-                    return v.Value;
+                return 0;
+            }
+        }
+
+        public GradeTuple GradeTuple
+        {
+            get
+            {
+                if (GradeString != null)
+                    return GradeSystem[GradeString];
                 else
-                    return 0;
+                    return GradeSystem[0];
+            }
+        }
+
+        public string TestString
+        {
+            get
+            {
+                return $"{LectureName}/{Credit}/{GradeString}/{Grade}";
             }
         }
 
@@ -261,7 +293,7 @@ namespace Fibonacci
         {
             LectureName = lectureName;
             Credit = credit;
-            GradeString = gradeString;
+            GradeString = gradeString?.ToUpper();
         }
 
         public override string ToString()

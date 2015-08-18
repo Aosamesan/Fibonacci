@@ -75,7 +75,7 @@ namespace Fibonacci
         {
             var item = GradeSystemListView.SelectedItem as GradeTuple;
 
-            if(item != null)
+            if (item != null)
                 SelectedUser.GradeSystem.Remove(item.GradeName);
         }
 
@@ -103,7 +103,7 @@ namespace Fibonacci
                 AffirmativeButtonText = "4.5",
                 NegativeButtonText = "4.3",
                 ColorScheme = MetroDialogColorScheme.Inverted
-               
+
             };
             var result = await DialogManager.ShowMessageAsync(this, "학점", "", MessageDialogStyle.AffirmativeAndNegative, settings);
             double maximum = 0;
@@ -130,7 +130,7 @@ namespace Fibonacci
         {
             Semester item = SemesterListBox.SelectedItem as Semester;
 
-            if(item != null)
+            if (item != null)
             {
                 SelectedUser.Semesters.Remove(item);
             }
@@ -138,32 +138,37 @@ namespace Fibonacci
 
         private async void LectureAddButton_Click(object sender, RoutedEventArgs e)
         {
-            if (SemesterListBox.SelectedItem == null)
+            Semester selectedSemester = SemesterListBox.SelectedItem as Semester;
+
+            if (selectedSemester == null)
                 return;
 
-            string lectureName = await DialogManager.ShowInputAsync(this, "강의 제목", "");
-            if (string.IsNullOrWhiteSpace(lectureName))
-                return;
-            string credit = await DialogManager.ShowInputAsync(this, "이수 학점", "정수");
-            if (string.IsNullOrWhiteSpace(credit))
-                return;
-            int intCredit = 0;
             try
             {
-                intCredit = Convert.ToInt32(credit);
+                
+                string lectureName = await DialogManager.ShowInputAsync(this, "강의 제목", "");
+                if (string.IsNullOrWhiteSpace(lectureName))
+                    return;
+                string credit = await DialogManager.ShowInputAsync(this, "이수 학점", "정수");
+                if (string.IsNullOrWhiteSpace(credit))
+                    return;
+                int intCredit = 0;
+                try
+                {
+                    intCredit = Convert.ToInt32(credit);
+                }
+                catch (Exception ex)
+                {
+                    await DialogManager.ShowMessageAsync(this, "에러", $"Message : {ex.Message}\nStackTrace : {ex.StackTrace}");
+                    return;
+                }
+
+                Lecture l = new Lecture(lectureName, intCredit, "A+");
+
+                Binding binding = new Binding("");
+                selectedSemester.Add(l);
             }
             catch (Exception ex)
-            {
-                await DialogManager.ShowMessageAsync(this, "에러", $"Message : {ex.Message}\nStackTrace : {ex.StackTrace}");
-                return;
-            }
-            string grade = await DialogManager.ShowInputAsync(this, "학점", "(A+/A0/A-...., Setting 참조)");
-            try
-            {
-                Lecture l = new Lecture(lectureName, intCredit, grade);
-                (SemesterListBox.SelectedItem as Semester).Add(l);
-            }
-            catch(Exception ex)
             {
                 await DialogManager.ShowMessageAsync(this, "에러", $"Message : {ex.Message}\nStackTrace : {ex.StackTrace}");
                 return;
@@ -199,7 +204,7 @@ namespace Fibonacci
                 else
                     return Visibility.Visible;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return Visibility.Hidden;
             }
@@ -216,6 +221,19 @@ namespace Fibonacci
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             return value as Semester;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class NullToBooleanConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return value != null;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
