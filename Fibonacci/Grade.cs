@@ -95,14 +95,37 @@ namespace Fibonacci
         public new void Add(GradeTuple item)
         {
             int i = 0;
-            foreach(var t in Items)
+            char first = item.GradeName.First();
+            char last = item.GradeName.Last();
+            if (first == last)
+                return;
+            Func<char, int> myComparer = (ch) =>
             {
-                if(string.Compare(t.GradeName, item.GradeName) == 1)
+                switch (ch)
                 {
-                    break;
+                    case '+':
+                        return 0;
+                    case '0':
+                        return 1;
+                    case '-':
+                        return 2;
+                    default:
+                        return 3;
+                }
+            };
+
+            foreach(var v in Items)
+            {
+                char itemFirst = v.GradeName.First();
+                char itemLast = v.GradeName.Last();
+                if(itemFirst == first)
+                {
+                    if (myComparer(last) <= myComparer(itemLast))
+                        break;
                 }
                 i++;
             }
+            
             base.Insert(i, item);
         }
 
@@ -115,9 +138,14 @@ namespace Fibonacci
 
         #region Constructor
         public GradeSystem()
+            : this(4.5)
         {
+        }
+
+        public GradeSystem(double maximum)
+        {
+            Maximum = maximum;
             gradeDict = new Dictionary<string, double>();
-            Maximum = 4.5;
         }
         #endregion
 
@@ -138,86 +166,66 @@ namespace Fibonacci
         #endregion
     }
 
-    //public class GradeSystemCollection : ObservableCollection<GradeSystem>, INotifyPropertyChanged
-    //{
-    //    private GradeSystem selectedItem;
-    //    public GradeSystem SelectedItem
-    //    {
-    //        get
-    //        {
-    //            return selectedItem;
-    //        }
-    //        set
-    //        {
-    //            selectedItem = value;
-    //            OnPropertyChanged(
-    //                new PropertyChangedEventArgs(nameof(SelectedItem)));
-    //        }
+    public class User : INotifyPropertyChanged
+    {
+        private string name;
+        public string Name { get { return name; } set { name = value; OnPropertyChanged(nameof(Name)); } }
+        private string studentNumber;
+        public string StudentNumber { get { return studentNumber; } set { studentNumber = value; OnPropertyChanged(nameof(StudentNumber)); } }
+        private double maximum;
+        public double Maximum { get { return maximum; } set { maximum = value; OnPropertyChanged(nameof(Maximum)); } }
+        public string GradeString
+        {
+            get
+            {
+                return $"{Semesters.CreditSum} / {Maximum}";
+            }
+        }
 
-    //    }
-
-    //    public GradeSystemCollection()
-    //        : base()
-    //    {
-    //        // 4.5
-    //        GradeSystem g = new GradeSystem("4.5 만점", 4.5);
-    //        g.Add("A+", 4.5);
-    //        g.Add("A", 4);
-    //        g.Add("B+", 3.5);
-    //        g.Add("B", 3);
-    //        g.Add("C+", 2.5);
-    //        g.Add("C", 2);
-    //        g.Add("D+", 1.5);
-    //        g.Add("D", 1.0);
-    //        g.Add("F", 0);
-    //        Items.Add(g);
-
-    //        SelectedItem = g;
-    //        // 4.5 (-)
-    //        g = new GradeSystem("4.5 만점(-)", 4.5);
-    //        g.Add("A+", 4.5);
-    //        g.Add("A", 4.3);
-    //        g.Add("A-", 4);
-    //        g.Add("B+", 3.5);
-    //        g.Add("B", 3.3);
-    //        g.Add("B-", 3);
-    //        g.Add("C+", 2.5);
-    //        g.Add("C", 2.3);
-    //        g.Add("C-", 2);
-    //        g.Add("D+", 1.5);
-    //        g.Add("D", 1.3);
-    //        g.Add("D-", 1.0);
-    //        g.Add("F", 0);
-    //        Items.Add(g);
-    //        // 4.3
-    //        g = new GradeSystem("4.3 만점", 4.3);
-    //        g.Add("A+", 4.5);
-    //        g.Add("A", 4);
-    //        g.Add("A-", 3.7);
-    //        g.Add("B+", 3.3);
-    //        g.Add("B", 3);
-    //        g.Add("B-", 2.7);
-    //        g.Add("C+", 2.3);
-    //        g.Add("C", 2);
-    //        g.Add("C-", 1.7);
-    //        g.Add("D+", 1.3);
-    //        g.Add("D", 1);
-    //        g.Add("D-", 0.7);
-    //        g.Add("F", 0);
-    //        Items.Add(g);
-    //    }
-
-    //    public new void Add(GradeSystem g) => Console.Beep();
-    //}
+        private SemesterCollection semesters;
+        public SemesterCollection Semesters { get { return semesters; }
+            set { semesters = value; OnPropertyChanged(nameof(Semesters)); }
+        }
+        private GradeSystem gradeSystem;
+        public GradeSystem GradeSystem
+        {
+            get { return gradeSystem; }
+            set { gradeSystem = value; OnPropertyChanged(nameof(GradeSystem)); }
+        }
+        
+        public User(string name, string studentNumber, double maximum)
+        {
+            Name = name;
+            StudentNumber = studentNumber;
+            Maximum = maximum;
+            Semesters = new SemesterCollection();
+            GradeSystem = new GradeSystem(Maximum);
+            Lecture.GradeSystem = GradeSystem;
+        }
+        
+        public event PropertyChangedEventHandler PropertyChanged;
+        
+        protected void OnPropertyChanged(string name)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 
     public class Lecture : INotifyPropertyChanged
     {
         private string gradeString;
+        private int credit;
 
         public string LectureName { get; set; }
         public int Credit
         {
-            get; set;
+            get
+            {
+                return credit;
+            }
+            set
+            {
+                credit = value;
+                OnPropertyChanged(nameof(Credit));
+            }
         }
         public string GradeString
         {
@@ -228,27 +236,143 @@ namespace Fibonacci
             set
             {
                 gradeString = value;
-                OnPropertyChanged("GradeString");
-                OnPropertyChanged("Grade");
+                OnPropertyChanged(nameof(GradeString));
+                OnPropertyChanged(nameof(Grade));
             }
         }
         public double Grade
         {
             get
             {
-                return GradeSystem[GradeString];
+                var v = GradeSystem?[GradeString];
+                if (v.HasValue)
+                    return v.Value;
+                else
+                    return 0;
             }
         }
 
-
-        public GradeSystem GradeSystem { get; set; }
+        public static GradeSystem GradeSystem
+        {
+            get; set;
+        } = null;
         
-                
+        public Lecture(string lectureName, int credit, string gradeString)
+        {
+            LectureName = lectureName;
+            Credit = credit;
+            GradeString = gradeString;
+        }
+
+        public override string ToString()
+        {
+            return $"{LectureName}/{Credit}/{GradeString}/{Grade}";
+        }
+
         #region INotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
         
         protected void OnPropertyChanged(string propertyName)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         #endregion
+    }
+
+    public class Semester : ObservableCollection<Lecture>, INotifyPropertyChanged
+    {
+        private string name;
+        public string Name
+        {
+            get { return name; }
+            set
+            {
+                name = value;
+                OnPropertyChanged(nameof(Name));
+            }
+        }
+        public double GradeSum
+        {
+            get
+            {
+                double sum = 0;
+                foreach (var v in Items)
+                {
+                    sum += v.Grade * v.Credit;
+                }
+                return sum;
+            }
+        }
+
+        public int CreditSum
+        {
+            get
+            {
+                int sum = 0;
+                foreach(var v in Items)
+                {
+                    sum += v.Credit;
+                }
+                return sum;
+            }
+        }
+
+        public double Grade
+        {
+            get
+            {
+                return CreditSum != 0 ? GradeSum / CreditSum : 0;
+            }
+        }
+
+        protected override event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged(string name)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+        public override string ToString()
+        {
+            return $"{Name}";
+        }
+    }
+    public class SemesterCollection : ObservableCollection<Semester>
+    {
+        public double CreditSum
+        {
+            get
+            {
+                double sum = 0;
+                foreach (var v in Items)
+                {
+                    sum += v.CreditSum;
+                }
+                return sum;
+            }
+        }
+
+        public double GradeSum
+        {
+            get
+            {
+                double sum = 0;
+                foreach (var v in Items)
+                {
+                    sum += v.GradeSum;
+                }
+                return sum;
+            }
+        }
+
+        public double Grade
+        {
+            get
+            {
+                return CreditSum != 0 ? GradeSum / CreditSum : 0;
+            }
+        }
+
+        public void Add(string semesterName)
+        {
+            var s = new Semester();
+            s.Name = semesterName;
+            Add(s);
+        }
     }
 }
