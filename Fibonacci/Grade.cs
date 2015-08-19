@@ -16,6 +16,7 @@ namespace Fibonacci
         private string gradeName;
         private double gradeValue;
         public event PropertyChangedEventHandler PropertyChanged;
+        public bool IsSealed { get; }
 
         public string GradeName
         {
@@ -45,10 +46,11 @@ namespace Fibonacci
                 OnPropertyChanged(nameof(GradeValue));
             }
         }
-        public GradeTuple(string gradeName, double gradeValue)
+        public GradeTuple(string gradeName, double gradeValue, bool isSealed = false)
         {
             GradeName = gradeName;
             GradeValue = gradeValue;
+            IsSealed = isSealed;
         }
 
         protected void OnPropertyChanged(string name)
@@ -57,6 +59,42 @@ namespace Fibonacci
         public override string ToString()
         {
             return GradeName;
+        }
+
+        public XmlNode GetXMLNode(XmlDocument doc)
+        {
+            var name = doc.CreateAttribute("Name");
+            name.Value = GradeName;
+            var value = doc.CreateAttribute("Value");
+            value.Value = $"{GradeValue}";
+            var isSealed = doc.CreateAttribute("IsSealed");
+            isSealed.Value = $"{IsSealed}";
+            XmlNode node = doc.CreateElement("GradeTuple");
+            node.Attributes.Append(name);
+            node.Attributes.Append(value);
+            node.Attributes.Append(isSealed);
+            return node;
+        }
+
+        public static GradeTuple GetGradeTupleFromXMLNode(XmlNode node)
+        {
+            if (node.Name != "GradeTuple")
+                return null;
+            string s = node.Attributes["Name"].Value;
+            double d = Convert.ToDouble(node.Attributes["Value"].Value);
+
+            string isSealed = "false";
+            try
+            {
+                isSealed = node.Attributes["IsSealed"].Value;
+            }
+            catch(Exception ex)
+            {
+                isSealed = "true";
+            }
+
+            bool b = Convert.ToBoolean(isSealed);
+            return new GradeTuple(s, d, b);
         }
     }
 
@@ -81,9 +119,9 @@ namespace Fibonacci
         #endregion
 
         #region Methods
-        public void Add(string gradeString, double grade)
+        public void Add(string gradeString, double grade, bool isSealed = false)
         {
-            var item = new GradeTuple(gradeString.ToUpper(), grade);
+            var item = new GradeTuple(gradeString.ToUpper(), grade, isSealed);
         
             Add(item);
         }
@@ -125,42 +163,82 @@ namespace Fibonacci
                 char itemLast = v.GradeName.Last();
                 if(itemFirst == first)
                 {
-                    if (myComparer(last) <= myComparer(itemLast))
+                    if (myComparer(last) < myComparer(itemLast))
                     {
                         break;
                     }
                 }
                 i++;
             }
-            
+
             Insert(i, item);
             OnPropertyChanged("Item[]");
         }
 
         public void Remove(string gradeString)
         {
-            Remove(Items.First((t) => t.GradeName == gradeString.ToUpper()));
+            var item = Items.First((t) => t.GradeName == gradeString.ToUpper());
+            if (item == null || item.IsSealed)
+                return;
+            Remove(item);
             OnPropertyChanged("Item[]");
         }
+
+        public XmlNode GetXMLNode(XmlDocument doc)
+        {
+            var maximum = doc.CreateAttribute("Maximum");
+            maximum.Value = $"{Maximum}";
+            XmlNode node = doc.CreateElement("GradeSystem");
+            node.Attributes.Append(maximum);
+            foreach(var v in Items)
+            {
+                node.AppendChild(v.GetXMLNode(doc));
+            }
+            return node;
+        }
+        
+        public static GradeSystem GetGradeSystemFromXMLNode(XmlNode node)
+        {
+            if (node.Name != "GradeSystem")
+                return null;
+            double d = Convert.ToDouble(node.Attributes["Maximum"].Value);
+            GradeSystem gs = new GradeSystem(d);
+            foreach(XmlNode v in node.ChildNodes)
+            {
+                var c = GradeTuple.GetGradeTupleFromXMLNode(v);
+                gs.Add(c);
+            }
+            return gs;
+        }
+
         #endregion
 
         #region Constructor
-        public GradeSystem(double maximum)
+        public GradeSystem(double maximum, bool newSystem = false)
         {
             Maximum = maximum;
 
-            if(Maximum == 4.5)
+            if (newSystem)
             {
-                for(int i = 0; i < 7; i++)
+                if (Maximum == 4.5)
                 {
-                    char c = i % 2 == 0 ? '+' : '0';
-                    Add($"{Convert.ToChar('A' + i / 2)}{c}", 4.5 - i * 0.5);
+                    for (int i = 0; i < 8; i++)
+                    {
+                        char c = i % 2 == 0 ? '+' : '0';
+                        Add($"{Convert.ToChar('A' + i / 2)}{c}", Maximum - i * 0.5, true);
+                    }
+                    Add("F", 0, true);
                 }
-                Add("F", 0);
-            }
-            else
-            {
-
+                else
+                {
+                    for (int i = 0; i < 12; i++)
+                    {
+                        char c = i % 3 == 0 ? '+' : i % 3 == 1 ? '0' : '-';
+                        Add($"{Convert.ToChar('A' + i / 3)}{c}", maximum, true);
+                        maximum -= (i % 3 == 2 ? 0.4 : 0.3);
+                    }
+                    Add("F", 0, true);
+                }
             }
         }
         #endregion
@@ -192,8 +270,14 @@ namespace Fibonacci
         {
             get
             {
-                return $"{Semesters.CreditSum} / {Maximum}";
+                string s = Semesters.Grade == 0 ? "0" : $"{Semesters.Grade:#.##}";
+                return $"{s} / {Maximum}";
             }
+        }
+
+        public void RefreshGradeString()
+        {
+            OnPropertyChanged(nameof(GradeString));
         }
 
         private SemesterCollection semesters;
@@ -213,7 +297,7 @@ namespace Fibonacci
             StudentNumber = studentNumber;
             Maximum = maximum;
             Semesters = new SemesterCollection();
-            GradeSystem = new GradeSystem(Maximum);
+            GradeSystem = new GradeSystem(Maximum, true);
             Lecture.GradeSystem = GradeSystem;
         }
         
@@ -221,6 +305,40 @@ namespace Fibonacci
         
         protected void OnPropertyChanged(string name)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+        public XmlNode GetXMLNode(XmlDocument doc)
+        {
+            XmlNode node = doc.CreateElement("User");
+            var attr = doc.CreateAttribute("Name");
+            attr.Value = Name;
+            node.Attributes.Append(attr);
+            attr = doc.CreateAttribute("StudentNumber");
+            attr.Value = StudentNumber;
+            node.Attributes.Append(attr);
+            attr = doc.CreateAttribute("Maximum");
+            attr.Value = $"{Maximum}";
+            node.Attributes.Append(attr);
+
+            node.AppendChild(GradeSystem.GetXMLNode(doc));
+            node.AppendChild(Semesters.GetXMLNode(doc));
+
+            return node;
+        }
+
+        public static User GetUserFromXMLNode(XmlNode node)
+        {
+            if (node.Name != "User")
+                return null;
+            string name = node.Attributes["Name"].Value;
+            string studentNumber = node.Attributes["StudentNumber"].Value;
+            double max = Convert.ToDouble(node.Attributes["Maximum"].Value);
+            GradeSystem gs = GradeSystem.GetGradeSystemFromXMLNode(node["GradeSystem"]);
+            SemesterCollection sc = SemesterCollection.GetSemesterCollectionFromXMLNode(node["SemesterCollection"]);
+            User user = new User(name, studentNumber, max);
+            user.GradeSystem = gs;
+            user.Semesters = sc;
+            return user;
+        }
     }
 
     public class Lecture : INotifyPropertyChanged
@@ -239,7 +357,6 @@ namespace Fibonacci
             {
                 credit = value;
                 OnPropertyChanged(nameof(Credit));
-                OnPropertyChanged(nameof(TestString));
             }
         }
         public string GradeString
@@ -254,13 +371,14 @@ namespace Fibonacci
 
                 OnPropertyChanged(nameof(GradeString));
                 OnPropertyChanged(nameof(GradeTuple));
-                OnPropertyChanged(nameof(TestString));
             }
         }
         public double Grade
         {
             get
             {
+                if(GradeSystem?[GradeString] != null)
+                    return GradeSystem[GradeString].GradeValue;
                 return 0;
             }
         }
@@ -276,14 +394,6 @@ namespace Fibonacci
             }
         }
 
-        public string TestString
-        {
-            get
-            {
-                return $"{LectureName}/{Credit}/{GradeString}/{Grade}";
-            }
-        }
-
         public static GradeSystem GradeSystem
         {
             get; set;
@@ -294,11 +404,37 @@ namespace Fibonacci
             LectureName = lectureName;
             Credit = credit;
             GradeString = gradeString?.ToUpper();
+            OnPropertyChanged(nameof(GradeString));
         }
 
         public override string ToString()
         {
             return $"{LectureName}/{Credit}/{GradeString}/{Grade}";
+        }
+
+        public XmlNode GetXMLNode(XmlDocument doc)
+        {
+            XmlNode node = doc.CreateElement("Lecture");
+            var attr = doc.CreateAttribute("Name");
+            attr.Value = LectureName;
+            node.Attributes.Append(attr);
+            attr = doc.CreateAttribute("Credit");
+            attr.Value = $"{Credit}";
+            node.Attributes.Append(attr);
+            attr = doc.CreateAttribute("Grade");
+            attr.Value = GradeString;
+            node.Attributes.Append(attr);
+            return node;
+        }
+
+        public static Lecture GetLectureFromXMLNode(XmlNode node)
+        {
+            if (node.Name != "Lecture")
+                return null;
+            string name = node.Attributes["Name"].Value;
+            int credit = Convert.ToInt32(node.Attributes["Credit"].Value);
+            string gradeString = node.Attributes["Grade"].Value;
+            return new Lecture(name, credit, gradeString);
         }
 
         #region INotifyPropertyChanged
@@ -330,6 +466,7 @@ namespace Fibonacci
                 {
                     sum += v.Grade * v.Credit;
                 }
+                
                 return sum;
             }
         }
@@ -347,12 +484,19 @@ namespace Fibonacci
             }
         }
 
-        public double Grade
+        public string Grade
         {
             get
             {
-                return CreditSum != 0 ? GradeSum / CreditSum : 0;
+                return CreditSum != 0 ? $"{GradeSum/CreditSum:#.##}" : "0";
             }
+        }
+
+        public void InvokePropertyChanged()
+        {
+            OnPropertyChanged(nameof(CreditSum));
+            OnPropertyChanged(nameof(GradeSum));
+            OnPropertyChanged(nameof(Grade));
         }
 
         protected override event PropertyChangedEventHandler PropertyChanged;
@@ -363,8 +507,37 @@ namespace Fibonacci
         {
             return $"{Name}";
         }
+
+        public XmlNode GetXMLNode(XmlDocument doc)
+        {
+            XmlNode node = doc.CreateElement("Semester");
+            var attr = doc.CreateAttribute("Name");
+            attr.Value = Name;
+            node.Attributes.Append(attr);
+            foreach(var v in Items)
+            {
+                node.AppendChild(v.GetXMLNode(doc));
+            }
+            return node;
+        }
+
+        public static Semester GetSemesterFromXMLNode(XmlNode node)
+        {
+            if (node.Name != "Semester")
+                return null;
+            string s = node.Attributes["Name"].Value;
+            Semester semester = new Semester();
+            semester.Name = s;
+            foreach(XmlNode v in node.ChildNodes)
+            {
+                var item = Lecture.GetLectureFromXMLNode(v);
+                semester.Add(item);
+            }
+
+            return semester;
+        }
     }
-    public class SemesterCollection : ObservableCollection<Semester>
+    public class SemesterCollection : ObservableCollection<Semester>, INotifyPropertyChanged
     {
         public double CreditSum
         {
@@ -400,11 +573,47 @@ namespace Fibonacci
             }
         }
 
+        public void InvokePropertyChanged()
+        {
+            OnPropertyChanged(nameof(CreditSum));
+            OnPropertyChanged(nameof(GradeSum));
+            OnPropertyChanged(nameof(Grade));
+        }
+
         public void Add(string semesterName)
         {
             var s = new Semester();
             s.Name = semesterName;
             Add(s);
+        }
+
+        protected override event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged(string name)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+
+        public XmlNode GetXMLNode(XmlDocument doc)
+        {
+            XmlNode node = doc.CreateElement("SemesterCollection");
+            foreach(var v in Items)
+            {
+                node.AppendChild(v.GetXMLNode(doc));
+            }
+            return node;
+        }
+
+        public static SemesterCollection GetSemesterCollectionFromXMLNode(XmlNode node)
+        {
+            if (node.Name != "SemesterCollection")
+                return null;
+            SemesterCollection result = new SemesterCollection();
+            foreach(XmlNode n in node.ChildNodes)
+            {
+                var v = Semester.GetSemesterFromXMLNode(n);
+                result.Add(v);
+            }
+
+            return result;
         }
     }
 }

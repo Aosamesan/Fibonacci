@@ -18,6 +18,8 @@ using MahApps.Metro.Controls.Dialogs;
 using System.ComponentModel;
 using Microsoft.Win32;
 using System.Windows.Media.Animation;
+using System.Xml;
+using System.IO;
 
 namespace Fibonacci
 {
@@ -26,6 +28,8 @@ namespace Fibonacci
     /// </summary>
     public partial class MainWindow : MetroWindow, INotifyPropertyChanged
     {
+        public static string FilterString { get; }
+
         private User selectedUser;
         public User SelectedUser
         {
@@ -43,7 +47,11 @@ namespace Fibonacci
         public MainWindow()
         {
             InitializeComponent();
-            //SelectedUser = new User("김개똥", "30294102", 4.3);
+        }
+
+        static MainWindow()
+        {
+            FilterString = "성적 파일(*.I_GOT_F)|*.I_GOT_F";
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -71,30 +79,51 @@ namespace Fibonacci
             }
         }
 
-        private void GradeDeleteButton_Click(object sender, RoutedEventArgs e)
+        private async void GradeDeleteButton_Click(object sender, RoutedEventArgs e)
         {
             var item = GradeSystemListView.SelectedItem as GradeTuple;
 
-            if (item != null)
+            if (item?.IsSealed == false)
+            {
                 SelectedUser.GradeSystem.Remove(item.GradeName);
+            }
+            else if(item != null)
+            {
+                await DialogManager.ShowMessageAsync(this, "에러", "기본으로 등록된 등급은 삭제할 수 없습니다.");
+            }
         }
 
         private void TestButton_Click(object sender, RoutedEventArgs e)
         {
         }
 
-        private void InfomationButton_Click(object sender, RoutedEventArgs e)
+        private async void InfomationButton_Click(object sender, RoutedEventArgs e)
         {
-            SelectedUser = new User("박말똥", "395712", 4.5);
+            XmlDocument doc = new XmlDocument();
+            doc.AppendChild(doc.CreateXmlDeclaration("1.0", "utf-8", null));
+            doc.AppendChild(SelectedUser.GetXMLNode(doc));
+            MemoryStream ms = new MemoryStream();
+            doc.Save(ms);
+            MemoryStream rs = new MemoryStream(ms.ToArray());
+            StreamReader sr = new StreamReader(rs);
+            string s = sr.ReadToEnd();
+            await DialogManager.ShowMessageAsync(this, "Xml", s);
+            sr.Close();
+            rs.Close();
+            ms.Close();
         }
 
         private async void NewButton_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = DialogManager.ShowInputAsync(this, "이름", "");
+            MetroDialogSettings s = new MetroDialogSettings()
+            {
+                ColorScheme = MetroDialogColorScheme.Accented
+            };
+            var dialog = DialogManager.ShowInputAsync(this, "이름", "",s);
             string name = await dialog;
             if (string.IsNullOrWhiteSpace(name))
                 return;
-            dialog = DialogManager.ShowInputAsync(this, "학번", "");
+            dialog = DialogManager.ShowInputAsync(this, "학번", "",s);
             string studentNumber = await dialog;
             if (string.IsNullOrWhiteSpace(name))
                 return;
@@ -102,7 +131,7 @@ namespace Fibonacci
             {
                 AffirmativeButtonText = "4.5",
                 NegativeButtonText = "4.3",
-                ColorScheme = MetroDialogColorScheme.Inverted
+                ColorScheme = MetroDialogColorScheme.Accented
 
             };
             var result = await DialogManager.ShowMessageAsync(this, "학점", "", MessageDialogStyle.AffirmativeAndNegative, settings);
@@ -114,10 +143,30 @@ namespace Fibonacci
             SelectedUser = new User(name, studentNumber, maximum);
         }
 
-        private void OpenButton_Click(object sender, RoutedEventArgs e)
+        private async void OpenButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog dlg = new OpenFileDialog();
-            dlg.ShowDialog();
+            dlg.Filter = FilterString;
+            var result = dlg.ShowDialog();
+
+            if (result == true)
+            {
+                XmlDocument doc = new XmlDocument();
+                doc.Load(dlg.FileName);
+                try
+                {
+                    SelectedUser = User.GetUserFromXMLNode(doc.DocumentElement);
+                }
+                catch (Exception ex)
+                {
+                    await DialogManager.ShowMessageAsync(this, "Error", $"= Message\n {ex.Message}\n\n= StackTrace\n {ex.StackTrace}");
+                    return;
+                }
+                if(SelectedUser == null)
+                {
+                    await DialogManager.ShowMessageAsync(this, "올바르지 않은 파일입니다.", "파일 형식이 올바르지 않거나 손상된 파일입니다.");
+                }
+            }
         }
 
         private async void SemesterAddButton_Click(object sender, RoutedEventArgs e)
@@ -133,6 +182,8 @@ namespace Fibonacci
             if (item != null)
             {
                 SelectedUser.Semesters.Remove(item);
+                SelectedUser.Semesters.InvokePropertyChanged();
+                SelectedUser.RefreshGradeString();
             }
         }
 
@@ -149,29 +200,81 @@ namespace Fibonacci
                 string lectureName = await DialogManager.ShowInputAsync(this, "강의 제목", "");
                 if (string.IsNullOrWhiteSpace(lectureName))
                     return;
-                string credit = await DialogManager.ShowInputAsync(this, "이수 학점", "정수");
-                if (string.IsNullOrWhiteSpace(credit))
-                    return;
-                int intCredit = 0;
-                try
-                {
-                    intCredit = Convert.ToInt32(credit);
-                }
-                catch (Exception ex)
-                {
-                    await DialogManager.ShowMessageAsync(this, "에러", $"Message : {ex.Message}\nStackTrace : {ex.StackTrace}");
-                    return;
-                }
-
-                Lecture l = new Lecture(lectureName, intCredit, "A+");
-
-                Binding binding = new Binding("");
+                Lecture l = new Lecture(lectureName, 3, "A+");
+                
                 selectedSemester.Add(l);
+                selectedSemester.InvokePropertyChanged();
+                SelectedUser.Semesters.InvokePropertyChanged();
+                SelectedUser.RefreshGradeString();
             }
             catch (Exception ex)
             {
                 await DialogManager.ShowMessageAsync(this, "에러", $"Message : {ex.Message}\nStackTrace : {ex.StackTrace}");
                 return;
+            }
+        }
+
+        private void NumericUpDown_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double?> e)
+        {
+            Semester selectedSemester = SemesterListBox.SelectedItem as Semester;
+
+            if (selectedSemester != null)
+            {
+                selectedSemester.InvokePropertyChanged();
+                SelectedUser.Semesters.InvokePropertyChanged();
+                SelectedUser.RefreshGradeString();
+            }
+        }
+
+        private void SplitButton_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            Semester selectedSemester = SemesterListBox.SelectedItem as Semester;
+
+            if (selectedSemester != null)
+            {
+                selectedSemester.InvokePropertyChanged();
+                SelectedUser.Semesters.InvokePropertyChanged();
+                SelectedUser.RefreshGradeString();
+            }
+        }
+
+        private void LectureDeleteButton_Click(object sender, RoutedEventArgs e)
+        {
+            Lecture selectedLecture = LectureListView.SelectedItem as Lecture;
+            Semester selectedSemester = SemesterListBox.SelectedItem as Semester;
+
+            if (selectedLecture != null && selectedSemester != null)
+            {
+                selectedSemester.Remove(selectedLecture);
+                selectedSemester.InvokePropertyChanged();
+                SelectedUser.Semesters.InvokePropertyChanged();
+                SelectedUser.RefreshGradeString();
+            }
+        }
+
+        private void GradeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            foreach(var v in SelectedUser.Semesters)
+            {
+                v.InvokePropertyChanged();
+            }
+            SelectedUser.Semesters.InvokePropertyChanged();
+            SelectedUser.RefreshGradeString();
+        }
+
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog dlg = new SaveFileDialog();
+            dlg.Filter = FilterString;
+
+            var result = dlg.ShowDialog(this);
+
+            if (result == true)
+            {
+                XmlDocument doc = new XmlDocument();
+                doc.AppendChild(doc.CreateXmlDeclaration("1.0", "utf-8", null));
+                doc.AppendChild(SelectedUser.GetXMLNode(doc));
+                doc.Save(dlg.FileName);
             }
         }
     }
@@ -234,6 +337,23 @@ namespace Fibonacci
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             return value != null;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class NotBooleanConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            bool? b = value as bool?;
+            if (b == true)
+                return false;
+            else
+                return true;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

@@ -6,10 +6,19 @@
                    xmlns:local="clr-namespace:Fibonacci"
                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                    Name="MainWindowName"
-                   Title="MainWindow"
+                   Title="I GOT AN F"
                    Width="1024"
                    Height="600"
+                   MinWidth="1024"
+                   MinHeight="400"
                    mc:Ignorable="d">
+    <Metro:MetroWindow.Resources>
+        <local:NullToVisibilityConverter x:Key="NullToVisibilityConverterKey" />
+        <local:VisibilityNotConverter x:Key="VisibilityNotConverterKey" />
+        <local:ObjectToSemesterConverter x:Key="ObjectToSemesterConverterKey" />
+        <local:NullToBooleanConverter x:Key="NullToBooleanConverterKey" />
+        <local:NotBooleanConverter x:Key="NotBooleanConverterKey" />
+    </Metro:MetroWindow.Resources>
     <Metro:MetroWindow.LeftWindowCommands>
         <Metro:WindowCommands>
             <Button Name="NewButton" Click="NewButton_Click">
@@ -19,12 +28,12 @@
                                Fill="{Binding RelativeSource={RelativeSource AncestorType=Button},
                                               Path=Foreground}">
                         <Rectangle.OpacityMask>
-                            <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_greek_sigma_uppercase}" />
+                            <VisualBrush Stretch="Fill" Visual="{StaticResource appbar_page_add}" />
                         </Rectangle.OpacityMask>
                     </Rectangle>
                     <TextBlock Margin="4 0 0 0"
                                VerticalAlignment="Center"
-                               Text="New" />
+                               Text="새로 만들기" />
                 </StackPanel>
             </Button>
             <Button Name="OpenButton" Click="OpenButton_Click">
@@ -39,10 +48,12 @@
                     </Rectangle>
                     <TextBlock Margin="4 0 0 0"
                                VerticalAlignment="Center"
-                               Text="Import" />
+                               Text="가져오기" />
                 </StackPanel>
             </Button>
-            <Button Name="SaveButton">
+            <Button Name="SaveButton"
+                    Click="SaveButton_Click"
+                    IsEnabled="{Binding ElementName=MainWindowName,Path=SelectedUser,Converter={StaticResource NullToBooleanConverterKey}}">
                 <StackPanel Orientation="Horizontal">
                     <Rectangle Width="20"
                                Height="20"
@@ -54,7 +65,7 @@
                     </Rectangle>
                     <TextBlock Margin="4 0 0 0"
                                VerticalAlignment="Center"
-                               Text="Export" />
+                               Text="내보내기" />
                 </StackPanel>
             </Button>
         </Metro:WindowCommands>
@@ -73,7 +84,7 @@
                     </Rectangle>
                     <TextBlock Margin="4 0 0 0"
                                VerticalAlignment="Center"
-                               Text="Contents" />
+                               Text="성적" />
                 </StackPanel>
             </Button>
             <Button Name="SettingButton" Click="SettingButton_Click">
@@ -88,11 +99,12 @@
                     </Rectangle>
                     <TextBlock Margin="4 0 0 0"
                                VerticalAlignment="Center"
-                               Text="Setting" />
+                               Text="설정" />
                 </StackPanel>
             </Button>
         </Metro:WindowCommands>
     </Metro:MetroWindow.RightWindowCommands>
+
     <Metro:MetroAnimatedTabControl Name="MainTabControl">
         <Metro:MetroAnimatedTabControl.Resources>
             <Style TargetType="TabItem">
@@ -104,11 +116,6 @@
                     </Setter.Value>
                 </Setter>
             </Style>
-
-            <local:NullToVisibilityConverter x:Key="NullToVisibilityConverterKey" />
-            <local:VisibilityNotConverter x:Key="VisibilityNotConverterKey" />
-            <local:ObjectToSemesterConverter x:Key="ObjectToSemesterConverterKey" />
-            <local:NullToBooleanConverter x:Key="NullToBooleanConverterKey" />
         </Metro:MetroAnimatedTabControl.Resources>
         <TabControl.Items>
             <TabItem Header="Contents">
@@ -142,30 +149,8 @@
                                 <TextBlock Margin="10 3 3 3"
                                            FontSize="30"
                                            Foreground="{StaticResource AccentColorBrush}"
-                                           Text="Grades" />
-                                <StackPanel Grid.RowSpan="2"
-                                            Grid.Column="1"
-                                            HorizontalAlignment="Right"
-                                            Orientation="Horizontal">
-                                    <Button Name="InfomationButton"
-                                            Width="50"
-                                            Height="50"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
-                                            Click="InfomationButton_Click"
-                                            Padding="5"
-                                            Style="{DynamicResource MetroCircleButtonStyle}">
-                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <Rectangle Width="25"
-                                                       Height="25"
-                                                       Fill="{StaticResource AccentColorBrush}">
-                                                <Rectangle.OpacityMask>
-                                                    <VisualBrush TileMode="Tile" Visual="{StaticResource appbar_greek_sigma_uppercase}" />
-                                                </Rectangle.OpacityMask>
-                                            </Rectangle>
-                                        </StackPanel>
-                                    </Button>
-                                </StackPanel>
+                                           Text="성적" />
+
                                 <Grid Grid.Row="1" Grid.ColumnSpan="2">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
@@ -174,13 +159,12 @@
                                         <ColumnDefinition />
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition />
-                                        <ColumnDefinition Width="{Binding ElementName=InfomationButton, Path=ActualWidth}" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Margin="10 5"
                                                VerticalAlignment="Center"
                                                FontSize="15"
                                                Foreground="{StaticResource AccentColorBrush}"
-                                               Text="Name" />
+                                               Text="이름" />
 
                                     <TextBlock Name="GradeBlock"
                                                Grid.Column="1"
@@ -194,7 +178,7 @@
                                                VerticalAlignment="Center"
                                                FontSize="15"
                                                Foreground="{StaticResource AccentColorBrush}"
-                                               Text="Student #" />
+                                               Text="학번" />
                                     <TextBlock Name="StudentNumberBlock"
                                                Grid.Column="3"
                                                HorizontalAlignment="Center"
@@ -207,7 +191,7 @@
                                                VerticalAlignment="Center"
                                                FontSize="15"
                                                Foreground="{StaticResource AccentColorBrush}"
-                                               Text="Grade" />
+                                               Text="전체 평점" />
                                     <TextBlock Name="GradeTextBlock"
                                                Grid.Column="5"
                                                HorizontalAlignment="Center"
@@ -232,9 +216,9 @@
 
                                 <TextBlock HorizontalAlignment="Center"
                                            FontSize="28"
-                                           Foreground="{StaticResource AccentColorBrush}">
-                                    Semesters
-                                </TextBlock>
+                                           Foreground="{StaticResource AccentColorBrush}"
+                                           Text="학기"
+                                           />
 
                                 <ListBox Name="SemesterListBox"
                                          Grid.Row="1"
@@ -317,63 +301,97 @@
                                 </StackPanel>
                             </Grid>
                         </Border>
-                        <Border Grid.Row="1"
-                                Grid.Column="1"
+                        <Grid Grid.Row="1"
+                                Grid.Column="1">
+                            <Border Name="GradePanel"
+                                Visibility="{Binding ElementName=SemesterListBox,Path=SelectedItem,Converter={StaticResource NullToVisibilityConverterKey}}"
                                 BorderBrush="{StaticResource AccentColorBrush}"
                                 BorderThickness="0 1 0 0">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
 
-                                <TextBlock HorizontalAlignment="Center"
+                                    <TextBlock HorizontalAlignment="Center"
                                            FontSize="28"
-                                           Foreground="{StaticResource AccentColorBrush}">
-                                    Lectures
-                                </TextBlock>
+                                           Foreground="{StaticResource AccentColorBrush}"
+                                           Text="목록"
+                                           />
 
-                                <ListView Name="LectureListView"
+                                    <ListView Name="LectureListView"
                                           Grid.Row="1"
                                           BorderThickness="0"
+                                          SelectionMode="Single"
                                           ItemsSource="{Binding ElementName=SemesterListBox,
                                                                 Path=SelectedItem,
                                                                 Converter={StaticResource ObjectToSemesterConverterKey}}">
-                                    <ListView.Resources>
-                                        <Style TargetType="ListViewItem">
-                                            <Setter Property="Background" Value="Transparent" />
-                                            <Setter Property="Foreground" Value="{StaticResource AccentColorBrush}" />
-                                            <Setter Property="FontWeight" Value="Normal" />
-                                            <Setter Property="FontSize" Value="24" />
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="ListViewItem">
-                                                        <Border Name="Panel" Background="{TemplateBinding Background}">
-                                                            <Grid>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition />
-                                                                    <ColumnDefinition />
-                                                                    <ColumnDefinition />
-                                                                    <ColumnDefinition />
-                                                                </Grid.ColumnDefinitions>
+                                        <ListView.Resources>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Foreground" Value="{StaticResource AccentColorBrush}" />
+                                                <Setter Property="Margin" Value="0 5" />
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="GridViewColumnHeader">
+                                                            <Border Name="Panel">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition />
+                                                                        <ColumnDefinition />
+                                                                        <ColumnDefinition />
+                                                                    </Grid.ColumnDefinitions>
 
-                                                                <TextBlock Name="NameBlock"
+                                                                    <TextBlock FontSize="20" Foreground="{TemplateBinding Foreground}"
+                                                                           HorizontalAlignment="Center" Text="이름"/>
+                                                                    <TextBlock FontSize="20" Foreground="{TemplateBinding Foreground}"
+                                                                           HorizontalAlignment="Center" Text="학점" Grid.Column="1"/>
+                                                                    <TextBlock FontSize="20" Foreground="{TemplateBinding Foreground}"
+                                                                           HorizontalAlignment="Center" Text="성적" Grid.Column="2"/>
+                                                                </Grid>
+                                                            </Border>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="Background" Value="Transparent" />
+                                                <Setter Property="Foreground" Value="{StaticResource AccentColorBrush}" />
+                                                <Setter Property="FontWeight" Value="Normal" />
+                                                <Setter Property="FontSize" Value="24" />
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="ListViewItem">
+                                                            <Border Name="Panel" Background="{TemplateBinding Background}">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition />
+                                                                        <ColumnDefinition />
+                                                                        <ColumnDefinition />
+                                                                    </Grid.ColumnDefinitions>
+
+                                                                    <TextBlock Name="NameBlock"
                                                                            HorizontalAlignment="Center"
                                                                            FontSize="{TemplateBinding FontSize}"
                                                                            FontWeight="{TemplateBinding FontWeight}"
                                                                            Foreground="{TemplateBinding Foreground}"
-                                                                           Text="{Binding LectureName}" />
+                                                                           Text="{Binding LectureName}" 
+                                                                           VerticalAlignment="Center"/>
 
-                                                                <Metro:NumericUpDown Grid.Column="1"
+                                                                    <Metro:NumericUpDown Grid.Column="1"
                                                                                      Margin="10 2"
                                                                                      BorderThickness="1"
+                                                                                     Minimum="1"
+                                                                                     Maximum="10"
+                                                                                     IsReadOnly="True"
                                                                                      FontSize="{TemplateBinding FontSize}"
                                                                                      FontWeight="{TemplateBinding FontWeight}"
                                                                                      Foreground="{TemplateBinding Foreground}"
-                                                                                     Value="{Binding Credit}" />
+                                                                                     Value="{Binding Credit}" 
+                                                                                     ValueChanged="NumericUpDown_ValueChanged"/>
 
-                                                                <Metro:SplitButton Grid.Column="2"
+                                                                    <Metro:SplitButton Grid.Column="2"
                                                                                    Margin="10 2"
                                                                                    BorderBrush="{StaticResource AccentColorBrush}"
                                                                                    BorderThickness="1"
@@ -382,50 +400,58 @@
                                                                                    Foreground="Red"
                                                                                    ItemsSource="{Binding ElementName=MainWindowName,
                                                                                                          Path=SelectedUser.GradeSystem}"
-                                                                                   SelectedItem="{Binding GradeString}" />
-
-                                                                <TextBlock Grid.Column="3"
-                                                                           HorizontalAlignment="Center"
-                                                                           FontSize="{TemplateBinding FontSize}"
-                                                                           FontWeight="{TemplateBinding FontWeight}"
-                                                                           Foreground="{TemplateBinding Foreground}"
-                                                                           Text="{Binding GradeTuple.GradeValue}" />
-                                                            </Grid>
-                                                        </Border>
-                                                        <ControlTemplate.Triggers>
-                                                            <EventTrigger RoutedEvent="MouseEnter">
-                                                                <BeginStoryboard x:Name="Flinker">
-                                                                    <Storyboard>
-                                                                        <DoubleAnimation Storyboard.TargetName="Panel"
+                                                                                   SelectedItem="{Binding GradeString}" 
+                                                                                   SelectionChanged="SplitButton_SelectionChanged"/>
+                                                                </Grid>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <EventTrigger RoutedEvent="MouseEnter">
+                                                                    <BeginStoryboard x:Name="Flinker">
+                                                                        <Storyboard>
+                                                                            <DoubleAnimation Storyboard.TargetName="Panel"
                                                                                          Storyboard.TargetProperty="(Border.Opacity)"
                                                                                          From="1"
-                                                                                         To="0"
+                                                                                         To=".6"
                                                                                          AutoReverse="True"
                                                                                          Duration="0:0:0.1"
                                                                                          RepeatBehavior="Forever"
                                                                                          />
-                                                                    </Storyboard>
-                                                                </BeginStoryboard>
-                                                            </EventTrigger>
-                                                            <EventTrigger RoutedEvent="MouseLeave">
-                                                                <StopStoryboard BeginStoryboardName="Flinker"/>
-                                                            </EventTrigger>
-                                                            <Trigger Property="IsSelected" Value="True">
-                                                                <Setter Property="FontWeight" Value="Black" />
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Style>
-                                    </ListView.Resources>
-                                </ListView>
+                                                                        </Storyboard>
+                                                                    </BeginStoryboard>
+                                                                </EventTrigger>
+                                                                <EventTrigger RoutedEvent="MouseLeave">
+                                                                    <StopStoryboard BeginStoryboardName="Flinker"/>
+                                                                </EventTrigger>
+                                                                <Trigger Property="IsSelected" Value="True">
+                                                                    <Setter Property="FontWeight" Value="Bold" />
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ListView.Resources>
+                                    </ListView>
 
-                                <StackPanel Grid.Row="2"
+                                    <Grid Grid.Row="2" Margin="5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition />
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Orientation="Horizontal" Grid.Column="1" Visibility="{Binding ElementName=SemesterListBox,Path=SelectedItem,Converter={StaticResource NullToVisibilityConverterKey}}">
+                                            <TextBlock Text="학기 평점" FontSize="24" Foreground="{StaticResource AccentColorBrush}" Margin="2"/>
+                                            <TextBlock Text="{Binding ElementName=SemesterListBox,Path=SelectedItem.Grade}" FontSize="24" Foreground="{StaticResource AccentColorBrush}"
+                                                   Margin="10 2 2 2"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <StackPanel Grid.Row="3"
                                             Margin="10 5"
                                             HorizontalAlignment="Center"
                                             Orientation="Horizontal">
-                                    <Button Name="LectureAddButton"
+                                        <Button Name="LectureAddButton"
                                             Width="50"
                                             Height="50"
                                             Margin="4"
@@ -435,17 +461,17 @@
                                                                 Path=SelectedItem,
                                                                 Converter={StaticResource NullToBooleanConverterKey}}"
                                             Style="{StaticResource SquareButtonStyle}">
-                                        <StackPanel>
-                                            <Rectangle Width="30"
+                                            <StackPanel>
+                                                <Rectangle Width="30"
                                                        Height="30"
                                                        Fill="{StaticResource AccentColorBrush}">
-                                                <Rectangle.OpacityMask>
-                                                    <VisualBrush Visual="{StaticResource appbar_add}" />
-                                                </Rectangle.OpacityMask>
-                                            </Rectangle>
-                                        </StackPanel>
-                                    </Button>
-                                    <Button Name="LectureDeleteButton"
+                                                    <Rectangle.OpacityMask>
+                                                        <VisualBrush Visual="{StaticResource appbar_add}" />
+                                                    </Rectangle.OpacityMask>
+                                                </Rectangle>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Name="LectureDeleteButton"
                                             Width="50"
                                             Height="50"
                                             Margin="4"
@@ -453,20 +479,29 @@
                                             IsEnabled="{Binding ElementName=SemesterListBox,
                                                                 Path=SelectedItem,
                                                                 Converter={StaticResource NullToBooleanConverterKey}}"
-                                            Style="{StaticResource SquareButtonStyle}">
-                                        <StackPanel>
-                                            <Rectangle Width="30"
+                                            Style="{StaticResource SquareButtonStyle}"
+                                            Click="LectureDeleteButton_Click">
+                                            <StackPanel>
+                                                <Rectangle Width="30"
                                                        Height="30"
                                                        Fill="{StaticResource AccentColorBrush}">
-                                                <Rectangle.OpacityMask>
-                                                    <VisualBrush Visual="{StaticResource appbar_close}" />
-                                                </Rectangle.OpacityMask>
-                                            </Rectangle>
-                                        </StackPanel>
-                                    </Button>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
+                                                    <Rectangle.OpacityMask>
+                                                        <VisualBrush Visual="{StaticResource appbar_close}" />
+                                                    </Rectangle.OpacityMask>
+                                                </Rectangle>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                            <Border Visibility="{Binding ElementName=GradePanel,Path=Visibility,Converter={StaticResource VisibilityNotConverterKey}}"
+                                    BorderBrush="{StaticResource AccentColorBrush}" BorderThickness="0 1 0 0">
+                                <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center"
+                                           Foreground="{StaticResource AccentColorBrush}" FontSize="60"
+                                           Text="열람할 학기를 선택해 주세요."
+                                           />
+                            </Border>
+                        </Grid>
                     </Grid>
                     <Grid Name="ScreenSaver"
                           HorizontalAlignment="Center"
@@ -488,7 +523,6 @@
                     <Grid Visibility="{Binding ElementName=ContentsTabGrid, Path=Visibility}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="3*" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
@@ -501,7 +535,7 @@
                                        FontSize="30"
                                        FontWeight="Thin"
                                        Foreground="{StaticResource AccentColorBrush}"
-                                       Text="Credits Settings" />
+                                       Text="설정" />
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                 <Button Name="GradeAddButton"
                                         Width="50"
@@ -529,21 +563,6 @@
                                                    Fill="{StaticResource AccentColorBrush}">
                                             <Rectangle.OpacityMask>
                                                 <VisualBrush Visual="{StaticResource appbar_delete}" />
-                                            </Rectangle.OpacityMask>
-                                        </Rectangle>
-                                    </StackPanel>
-                                </Button>
-                                <Button Name="TestButton"
-                                        Width="50"
-                                        Height="50"
-                                        Click="TestButton_Click"
-                                        Style="{StaticResource MetroCircleButtonStyle}">
-                                    <StackPanel>
-                                        <Rectangle Width="30"
-                                                   Height="30"
-                                                   Fill="{StaticResource AccentColorBrush}">
-                                            <Rectangle.OpacityMask>
-                                                <VisualBrush Visual="{StaticResource appbar_social_line}" />
                                             </Rectangle.OpacityMask>
                                         </Rectangle>
                                     </StackPanel>
@@ -595,7 +614,9 @@
                                                                     Minimum="0"
                                                                     SmallChange=".1"
                                                                     Style="{DynamicResource FlatSlider}"
-                                                                    Value="{Binding GradeValue}" />
+                                                                    Value="{Binding GradeValue}"
+                                                                    ValueChanged="GradeSlider_ValueChanged"
+                                                                    IsEnabled="{Binding IsSealed,Converter={StaticResource NotBooleanConverterKey}}"/>
                                                         </StackPanel>
 
                                                         <TextBlock Grid.Column="2"
@@ -610,13 +631,13 @@
 
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="SeaGreen" />
+                                                        <Setter Property="Background" Value="{StaticResource AccentColorBrush}" />
                                                         <Setter Property="Foreground" Value="White" />
                                                         <Setter Property="FontWeight" Value="SemiBold" />
                                                     </Trigger>
 
                                                     <Trigger Property="IsSelected" Value="True">
-                                                        <Setter Property="Background" Value="SeaGreen" />
+                                                        <Setter Property="Background" Value="{StaticResource AccentColorBrush}" />
                                                         <Setter Property="Foreground" Value="White" />
                                                         <Setter Property="FontWeight" Value="Bold" />
                                                     </Trigger>
